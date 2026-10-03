@@ -1,0 +1,98 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pre-commit
+      - run: pre-commit run --all-files --hook-stage manual
+
+  unit_tests:
+    # GitHub-hosted runners have no NVIDIA GPU: the TensorRT engine tests
+    # skip themselves here and must be run on a GPU machine.
+    name: Unit tests (CPU)
+    runs-on: ubuntu-latest
+    env:
+      KERAS_HOME: ../keras-tensorrt/.github/workflows/config
+    steps:
+      - name: Checkout keras-tensorrt
+        uses: actions/checkout@v4
+        with:
+          path: keras-tensorrt
+          persist-credentials: false
+      - name: Checkout keras (pluggable_backend)
+        uses: actions/checkout@v4
+        with:
+          repository: keras-team/keras
+          ref: pluggable_backend
+          path: keras
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Allow the "tensorrt" backend name
+        # Until keras-team/keras adds "tensorrt" to _PLUGGABLE_BACKENDS.
+        run: python keras-tensorrt/.github/workflows/allow_backend.py keras/keras/src/backend/config.py
+      - name: Install
+        run: |
+          pip install -r keras/requirements.txt
+          pip install -e keras
+          pip install -e keras-tensorrt pytest
+      - name: Verify installation
+        working-directory: ./keras
+        run: python -c "import keras; assert keras.backend.backend() == 'tensorrt'; import keras_tensorrt; print(keras_tensorrt.__version__)"
+      - name: Run keras-tensorrt tests
+        working-directory: ./keras-tensorrt
+        run: pytest tests -v
+
+  keras_suite:
+    # The full Keras test suite against this backend. Manual for now: most
+    # ops still delegate to NumPy and the exclusion list isn't curated yet.
+    if: github.event_name == 'workflow_dispatch'
+    name: Keras test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      KERAS_HOME: ../keras-tensorrt/.github/workflows/config
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: keras-tensorrt
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: keras-team/keras
+          ref: pluggable_backend
+          path: keras
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python keras-tensorrt/.github/workflows/allow_backend.py keras/keras/src/backend/config.py
+      - run: |
+          pip install -r keras/requirements.txt
+          pip install -e keras
+          pip install -e keras-tensorrt pytest pytest-xdist
+      - name: Run Keras tests
+        working-directory: ./keras
+        run: pytest keras -n auto --dist loadfile --ignore keras/src/applications --ignore keras/src/wrappers

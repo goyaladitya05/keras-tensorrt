@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools >=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keras-tensorrt"
+description = "NVIDIA TensorRT inference backend for Keras"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache License 2.0"}
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: POSIX :: Linux",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development",
+]
+dependencies = [
+    "keras",
+    "numpy",
+]
+
+[project.optional-dependencies]
+# TensorRT wheels are tied to the CUDA major version; pick the one matching
+# your driver / torch build. Developed against TensorRT 11.1 on CUDA 13.
+cu13 = ["tensorrt-cu13>=11.1,<12", "cuda-python>=13"]
+cu12 = ["tensorrt-cu12>=11.1,<12", "cuda-python>=12,<13"]
+
+[project.urls]
+Repository = "https://github.com/goyaladitya05/keras-tensorrt/"
+
+[tool.setuptools.dynamic]
+version = {attr = "keras_tensorrt.src.version.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["keras_tensorrt*"]
+
+[tool.ruff]
+line-length = 80
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle error
+    "F",  # Pyflakes
+    "I",  # isort
+    "S101",  # flake8-bandit / use of assert detected
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["E501", "F401"]  # lines too long; imported but unused
+"tests/**" = ["S101"]  # asserts are fine in tests
+
+[tool.ruff.lint.isort]
+force-single-line = true
+known-first-party = ["keras", "keras_tensorrt"]

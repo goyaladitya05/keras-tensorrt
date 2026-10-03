@@ -1,0 +1,7 @@
+**/*.egg-info/*
+*.egg-info
+__pycache__
+.ruff_cache
+.pytest_cache
+*.engine
+*.plan

@@ -1,0 +1,5 @@
+# Keras tests excluded for the TensorRT backend, one pytest node id or path
+# per line (same format as keras-openvino's excluded_tests.txt).
+#
+# Empty for now: eager ops currently delegate to Keras' NumPy backend, so the
+# suite behaves like the NumPy backend's. Add entries as ops move to TensorRT.

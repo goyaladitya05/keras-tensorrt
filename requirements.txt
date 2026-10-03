@@ -1,0 +1,11 @@
+# TensorRT (CUDA 13 build; use tensorrt-cu12 / cuda-python 12 for CUDA 12)
+tensorrt-cu13>=11.1,<12
+cuda-python>=13
+
+# Testing
+pytest
+pytest-xdist
+
+# Linting
+pre-commit
+ruff
